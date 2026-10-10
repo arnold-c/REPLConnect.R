@@ -61,6 +61,55 @@ if (interactive()) {
 }
 ```
 
+### Projects using renv
+
+renv gives each project an isolated library, and R skips `~/.Rprofile`
+when a project has its own `.Rprofile` (as renv projects do). To use
+replconnect in renv projects without adding it as a project dependency,
+install it into a separate personal library and tell renv about it.
+
+1. From a session outside any renv project (e.g. `R --vanilla`), install
+   into a dedicated library. Use a local checkout or r-universe:
+
+   ```r
+   lib <- path.expand("~/.R/dev-library")
+   dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+   install.packages(
+     "/path/to/REPLConnect.R/replconnect", # local source checkout
+     lib = lib,
+     repos = NULL,
+     type = "source"
+   )
+   # or: install.packages("replconnect", lib = lib,
+   #       repos = "https://arnold-c.r-universe.dev")
+   ```
+
+2. Add to `~/.Renviron` (use an absolute path):
+
+   ```
+   RENV_CONFIG_USER_PROFILE=TRUE
+   RENV_CONFIG_EXTERNAL_LIBRARIES=/Users/<you>/.R/dev-library
+   ```
+
+   `user.profile` makes renv source `~/.Rprofile` on activation, and
+   `external.libraries` adds the library to `.libPaths()` without recording
+   it in `renv.lock`.
+
+3. Use this in `~/.Rprofile`, which works both inside and outside renv
+   projects:
+
+   ```r
+   if (interactive()) {
+     local({
+       lib <- path.expand("~/.R/dev-library")
+       if (requireNamespace("replconnect", lib.loc = c(.libPaths(), lib), quietly = TRUE)) {
+         replconnect::start()
+         replconnect::capture_plots(TRUE)
+       }
+     })
+   }
+   ```
+
 ## R API
 
 | Function            | Purpose                                      |
