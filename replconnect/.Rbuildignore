@@ -1,2 +1,6 @@
 ^src/rust/target$
 ^src/rust/core/target$
+^src/.*\.o$
+^src/.*\.so$
+^.*\.Rcheck$
+^.*\.tar\.gz$

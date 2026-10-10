@@ -1,2 +1,11 @@
 .pi/
 **/target/
+*.o
+*.so
+*.dll
+*.dylib
+.Rproj.user/
+.Rhistory
+.RData
+replconnect/*.tar.gz
+replconnect.Rcheck/
