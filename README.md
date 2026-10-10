@@ -17,17 +17,27 @@ The repository has two parts:
 
 - Neovim with replconnect.nvim (the core plugin) installed
 - R >= 4.2 on Linux or macOS
-- Cargo and rustc (the package is compiled on install)
+- Cargo and rustc, only when building from source (not needed with r-universe binaries)
 - Optional: `unigd` (plot capture), `tibble`, `data.table`
 
 ## Installation
 
-Install the R package from this repository:
+Install the R package from [r-universe](https://arnold-c.r-universe.dev),
+which provides prebuilt binaries (no Rust toolchain needed):
 
 ```r
-install.packages("replconnect", repos = NULL, type = "source")
-# or, from a checkout:
-# R CMD INSTALL replconnect
+install.packages(
+  "replconnect",
+  repos = c("https://arnold-c.r-universe.dev", "https://cloud.r-project.org")
+)
+# or with pak:
+# pak::pak("replconnect", repos = "https://arnold-c.r-universe.dev")
+```
+
+To build from source instead (requires Cargo and rustc):
+
+```r
+pak::pak("arnold-c/REPLConnect.R/replconnect")
 ```
 
 Add this repository to Neovim's runtimepath alongside replconnect.nvim, e.g.
@@ -35,7 +45,7 @@ with lazy.nvim:
 
 ```lua
 {
-    "<owner>/REPLConnect.R",
+    "arnold-c/REPLConnect.R",
     dependencies = { "<owner>/REPLConnect.nvim" }
 }
 ```
