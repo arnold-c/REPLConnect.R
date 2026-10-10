@@ -1,0 +1,20 @@
+# Pretend R metadata so the extendr glue crate can be type-checked without an
+# R installation (`just rust_check`). Real builds (R CMD INSTALL) never use
+# this file: extendr-ffi's build script then finds R itself.
+[target.aarch64-unknown-linux-gnu.R]
+r_version_major = "4"
+r_version_minor = "5"
+r_version_patch = "0"
+rustc-cfg = ["r_4_4", "r_4_5", "use_r_ge_version_15", "use_r_ge_version_16"]
+
+[target.x86_64-unknown-linux-gnu.R]
+r_version_major = "4"
+r_version_minor = "5"
+r_version_patch = "0"
+rustc-cfg = ["r_4_4", "r_4_5", "use_r_ge_version_15", "use_r_ge_version_16"]
+
+[target.aarch64-apple-darwin.R]
+r_version_major = "4"
+r_version_minor = "5"
+r_version_patch = "0"
+rustc-cfg = ["r_4_4", "r_4_5", "use_r_ge_version_15", "use_r_ge_version_16"]

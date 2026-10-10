@@ -1,0 +1,23 @@
+# Build the Rust static library and link it into the package's shared
+# library. Unix only (see DESCRIPTION OS_type).
+TARGET_DIR = ./rust/target
+LIBDIR = $(TARGET_DIR)/release
+STATLIB = $(LIBDIR)/libreplconnect.a
+PKG_LIBS = -L$(LIBDIR) -lreplconnect
+
+all: $(SHLIB)
+
+$(SHLIB): $(STATLIB)
+
+# Ask Cargo on every install; Cargo tracks Rust dependencies itself. Without
+# this prerequisite, make reuses an existing .a even after Rust sources change.
+.PHONY: FORCE
+FORCE:
+
+$(STATLIB): FORCE
+	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
+	  cargo build --lib --release -p replconnect \
+	    --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR)
+
+clean:
+	rm -Rf $(SHLIB) $(OBJECTS) $(TARGET_DIR)

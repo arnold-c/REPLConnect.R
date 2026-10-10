@@ -1,0 +1,10 @@
+[package]
+name = "replconnect-core"
+version = "0.1.0"
+edition = "2021"
+description = "R-independent transport for the replconnect R package: Unix socket, NDJSON JSON-RPC framing and discovery files."
+publish = false
+
+[dependencies]
+libc = "0.2"
+serde_json = "1"

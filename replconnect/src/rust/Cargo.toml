@@ -1,0 +1,26 @@
+[package]
+name = "replconnect"
+version = "0.1.0"
+edition = "2021"
+description = "extendr glue between R and replconnect-core. Building it needs an R installation."
+publish = false
+
+[lib]
+crate-type = ["staticlib"]
+name = "replconnect"
+
+[dependencies]
+extendr-api = "0.9"
+# Same version extendr-api uses; for R_GetCurrentEnv.
+extendr-ffi = "0.9"
+replconnect-core = { path = "core" }
+serde_json = "1"
+
+# The core is tested on its own, without R:
+#   cargo test --manifest-path r/replconnect/src/rust/Cargo.toml -p replconnect-core
+[workspace]
+members = ["core"]
+
+[profile.release]
+lto = true
+codegen-units = 1

@@ -1,0 +1,7 @@
+# Maintained by hand (no roxygen run in this repository yet).
+export(capture_plots)
+export(record_history)
+export(serving)
+export(shutdown)
+export(start)
+useDynLib(replconnect, .registration = TRUE)
