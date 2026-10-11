@@ -80,6 +80,41 @@ test_that("an S4 generic has one location per method", {
   )
 })
 
+# An environment with an R6 class `Person` (methods on lines 3 and 4) and an
+# instance `bob`, sourced from a temp file with srcrefs (removed with tempdir).
+r6_env <- function() {
+  file <- tempfile(fileext = ".R")
+  writeLines(
+    c(
+      "Person <- R6::R6Class('Person', public = list(",
+      "  name = NULL,",
+      "  initialize = function(name) self$name <- name,",
+      "  greet = function() paste('hi', self$name)",
+      "))",
+      "bob <- Person$new('bob')"
+    ),
+    file
+  )
+  env <- new.env()
+  source(file, local = env, keep.source = TRUE)
+  env$file <- normalizePath(file)
+  env
+}
+
+test_that("R6 methods are labelled with their owner", {
+  skip_if_not_installed("R6")
+  env <- r6_env()
+  loc <- definition_reply(c("bob", "greet"), env)$result$locations[[1]]
+  expect_identical(loc$signature, "bob$greet()")
+  expect_identical(loc$file, env$file)
+  expect_identical(loc$line, 4L)
+  loc <- definition_reply(
+    c("Person", "public_methods", "greet"),
+    env
+  )$result$locations[[1]]
+  expect_identical(loc$signature, "Person$greet()")
+})
+
 test_that("a function without srcref returns deparsed source and no file", {
   env <- new.env()
   env$h <- eval(parse(text = "function(a) a", keep.source = FALSE))

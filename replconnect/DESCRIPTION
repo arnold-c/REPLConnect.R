@@ -16,6 +16,7 @@ Imports:
     utils
 Suggests:
     testthat (>= 3.0.0),
+    R6,
     tibble,
     data.table,
     unigd

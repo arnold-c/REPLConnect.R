@@ -112,6 +112,38 @@ s4_methods <- function(generic, name) {
 }
 
 #
+# R6
+#
+
+R6_METHOD_LISTS <- c("public_methods", "private_methods", "active")
+
+is_r6_object <- function(x) inherits(x, "R6")
+
+is_r6_generator <- function(x) inherits(x, "R6ClassGenerator")
+
+# The name to label the function at `path` with: `owner$method` for methods
+# of R6 objects (`obj$greet`) and generators
+# (`Person$public_methods$greet` -> `Person$greet`), else the last key.
+definition_name <- function(path, env) {
+  n <- length(path)
+  name <- path[[n]]
+  owner <- function(k) {
+    tryCatch(resolve(path[seq_len(k)], env), error = function(e) NULL)
+  }
+  if (n >= 2L && is_r6_object(owner(n - 1L))) {
+    return(paste0(path[[n - 1L]], "$", name))
+  }
+  if (
+    n >= 3L &&
+      path[[n - 1L]] %in% R6_METHOD_LISTS &&
+      is_r6_generator(owner(n - 2L))
+  ) {
+    return(paste0(path[[n - 2L]], "$", name))
+  }
+  name
+}
+
+#
 # Request
 #
 
@@ -132,10 +164,10 @@ function_locations <- function(f, name) {
 
 definition <- function(path, env) {
   f <- resolve(path, env)
-  name <- path[[length(path)]]
   if (!is.function(f)) {
-    rpc_stop(INVALID_PARAMS, paste0("Not a function: ", name))
+    rpc_stop(INVALID_PARAMS, paste0("Not a function: ", path[[length(path)]]))
   }
+  name <- definition_name(path, env)
   list(locations = I(function_locations(f, name)))
 }
 
