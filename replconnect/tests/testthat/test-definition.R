@@ -80,8 +80,8 @@ test_that("an S4 generic has one location per method", {
   )
 })
 
-# An environment with an R6 class `Person` (methods on lines 3 and 4) and an
-# instance `bob`, sourced from a temp file with srcrefs (removed with tempdir).
+# An environment with R6 classes `Person` (methods on lines 3 and 4) and
+# `Student` (lines 8, 9 and 10) and instances `bob` and `amy`, sourced from a temp file with srcrefs (removed with tempdir).
 r6_env <- function() {
   file <- tempfile(fileext = ".R")
   writeLines(
@@ -91,7 +91,12 @@ r6_env <- function() {
       "  initialize = function(name) self$name <- name,",
       "  greet = function() paste('hi', self$name)",
       "))",
-      "bob <- Person$new('bob')"
+      "bob <- Person$new('bob')",
+      "Student <- R6::R6Class('Student', inherit = Person, public = list(",
+      "  greet = function() paste(super$greet(), 'student'),",
+      "  study = function() 'studying'",
+      "), private = list(secret = function() 42))",
+      "amy <- Student$new('amy')"
     ),
     file
   )
@@ -113,6 +118,48 @@ test_that("R6 methods are labelled with their owner", {
     env
   )$result$locations[[1]]
   expect_identical(loc$signature, "Person$greet()")
+})
+
+signatures_of <- function(reply) {
+  vapply(reply$result$locations, `[[`, "", "signature")
+}
+
+test_that("an R6 generator lists its and its ancestors' methods", {
+  skip_if_not_installed("R6")
+  env <- r6_env()
+  expect_identical(kind(env$Student), "class")
+  expect_identical(kind(env$amy), "class")
+  reply <- definition_reply("Student", env)
+  expect_true(reply$ok)
+  expect_identical(
+    signatures_of(reply),
+    c(
+      "Student$greet()",
+      "Student$study()",
+      "Student$private$secret()",
+      "Person$initialize(name)",
+      "Person$greet()"
+    )
+  )
+  expect_identical(reply$result$locations[[1]]$line, 8L)
+  expect_identical(reply$result$locations[[1]]$file, env$file)
+})
+
+test_that("an R6 instance lists its, private and super methods", {
+  skip_if_not_installed("R6")
+  env <- r6_env()
+  signatures <- signatures_of(definition_reply("amy", env))
+  expect_true(all(
+    c(
+      "amy$greet()",
+      "amy$study()",
+      "amy$initialize(name)",
+      "amy$private$secret()",
+      "amy$super$greet()"
+    ) %in%
+      signatures
+  ))
+  expect_false("amy$clone(deep)" %in% signatures)
 })
 
 test_that("a function without srcref returns deparsed source and no file", {

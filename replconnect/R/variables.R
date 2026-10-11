@@ -39,7 +39,7 @@ kind <- function(x) {
   } else if (is.function(x)) {
     "function"
   } else if (is.environment(x)) {
-    if (inherits(x, "R6")) "class" else "map"
+    if (inherits(x, c("R6", "R6ClassGenerator"))) "class" else "map"
   } else if (is.list(x)) {
     if (is.null(names(x))) "collection" else "map"
   } else if (is.raw(x)) {

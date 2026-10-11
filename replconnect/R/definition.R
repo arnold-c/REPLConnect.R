@@ -143,6 +143,90 @@ definition_name <- function(path, env) {
   name
 }
 
+# `fns` (named functions) labelled as `owner$name(args)`.
+labelled_methods <- function(fns, owner) {
+  fns <- Filter(is.function, fns)
+  if (length(fns) == 0L) {
+    return(list())
+  }
+  names(fns) <- vapply(
+    names(fns),
+    function(name) definition_signature(fns[[name]], paste0(owner, "$", name)),
+    ""
+  )
+  fns
+}
+
+# The functions bound in an R6 object's environment (no active bindings and
+# no R6-provided `clone`).
+env_methods <- function(env) {
+  names <- setdiff(ls(env, all.names = FALSE), "clone")
+  names <- Filter(function(name) !bindingIsActive(name, env), names)
+  fns <- lapply(names, function(name) get(name, envir = env, inherits = FALSE))
+  names(fns) <- names
+  fns
+}
+
+# Methods of an R6 instance: public, private, then each `super` level.
+r6_object_methods <- function(obj, label) {
+  enclos <- obj$.__enclos_env__
+  private <- get0("private", envir = enclos, inherits = FALSE)
+  methods <- c(
+    labelled_methods(env_methods(obj), label),
+    if (is.environment(private)) {
+      labelled_methods(env_methods(private), paste0(label, "$private"))
+    }
+  )
+  owner <- label
+  super <- get0("super", envir = enclos, inherits = FALSE)
+  while (is.environment(super)) {
+    owner <- paste0(owner, "$super")
+    methods <- c(methods, labelled_methods(env_methods(super), owner))
+    super_enclos <- super$.__enclos_env__
+    super <- if (is.environment(super_enclos)) {
+      get0("super", envir = super_enclos, inherits = FALSE)
+    }
+  }
+  methods
+}
+
+# Methods of an R6 class generator and its ancestors, child first.
+r6_generator_methods <- function(generator, label) {
+  methods <- list()
+  owner <- label
+  while (is_r6_generator(generator)) {
+    for (kind in R6_METHOD_LISTS) {
+      prefix <- switch(
+        kind,
+        public_methods = owner,
+        private_methods = paste0(owner, "$private"),
+        active = paste0(owner, "$active")
+      )
+      methods <- c(methods, labelled_methods(generator[[kind]], prefix))
+    }
+    generator <- generator$get_inherit()
+    owner <- if (is_r6_generator(generator) && !is.null(generator$classname)) {
+      generator$classname
+    } else {
+      paste0(owner, "$parent")
+    }
+  }
+  methods
+}
+
+# Locations of every method of an R6 generator or object.
+r6_locations <- function(x, label) {
+  methods <- tryCatch(
+    if (is_r6_generator(x)) {
+      r6_generator_methods(x, label)
+    } else {
+      r6_object_methods(x, label)
+    },
+    error = function(e) list()
+  )
+  ordered_locations(methods)
+}
+
 #
 # Request
 #
@@ -164,6 +248,9 @@ function_locations <- function(f, name) {
 
 definition <- function(path, env) {
   f <- resolve(path, env)
+  if (is_r6_generator(f) || is_r6_object(f)) {
+    return(list(locations = I(r6_locations(f, path[[length(path)]]))))
+  }
   if (!is.function(f)) {
     rpc_stop(INVALID_PARAMS, paste0("Not a function: ", path[[length(path)]]))
   }
