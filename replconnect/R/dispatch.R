@@ -27,6 +27,7 @@ handlers <- function() {
     list = handle_list,
     changes = handle_changes,
     inspect = handle_inspect,
+    definition = handle_definition,
     viewer_page = handle_viewer_page,
     table_page = handle_table_page,
     clipboard_format = handle_clipboard_format,
@@ -42,7 +43,7 @@ handlers <- function() {
 #' Features this session offers.
 #' @noRd
 service_capabilities <- function() {
-  features <- c("variables", "viewer", "mutations", "shutdown")
+  features <- c("variables", "viewer", "mutations", "shutdown", "definition")
   if (recording_history()) {
     features <- c(features, "history")
   }

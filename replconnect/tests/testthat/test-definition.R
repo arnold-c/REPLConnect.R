@@ -1,0 +1,52 @@
+definition_reply <- function(path, env) {
+  local_mocked_bindings(workspace_env = function() env)
+  dispatch("definition", list(path = as.list(path)), 1)
+}
+
+test_that("definition is advertised", {
+  expect_true("definition" %in% service_capabilities())
+})
+
+test_that("an unknown path or a non-function is invalid params", {
+  env <- new.env()
+  env$x <- 1
+  expect_identical(
+    definition_reply("__replconnect_missing__", env)$code,
+    INVALID_PARAMS
+  )
+  expect_identical(definition_reply("x", env)$code, INVALID_PARAMS)
+})
+
+test_that("a sourced function has its file, line and source", {
+  file <- tempfile(fileext = ".R")
+  on.exit(unlink(file))
+  writeLines(c("# header", "f <- function(x, y = 2) {", "  x + y", "}"), file)
+  env <- new.env()
+  source(file, local = env, keep.source = TRUE)
+  reply <- definition_reply("f", env)
+  expect_true(reply$ok)
+  expect_s3_class(reply$result$locations, "AsIs")
+  loc <- reply$result$locations[[1]]
+  expect_identical(loc$signature, "f(x, y)")
+  expect_identical(loc$file, normalizePath(file))
+  expect_identical(loc$line, 2L)
+  expect_identical(loc$source, "function(x, y = 2) {\n  x + y\n}")
+})
+
+test_that("a function typed at the prompt has source but no file", {
+  env <- new.env()
+  eval(parse(text = "g <- function() 1", keep.source = TRUE), env)
+  loc <- definition_reply("g", env)$result$locations[[1]]
+  expect_identical(loc$source, "function() 1")
+  expect_false(file.exists(loc$file))
+})
+
+test_that("a function without srcref returns deparsed source and no file", {
+  env <- new.env()
+  env$h <- eval(parse(text = "function(a) a", keep.source = FALSE))
+  env$p <- sum
+  loc <- definition_reply("h", env)$result$locations[[1]]
+  expect_null(loc$file)
+  expect_match(loc$source, "function (a)", fixed = TRUE)
+  expect_true(definition_reply("p", env)$ok)
+})
