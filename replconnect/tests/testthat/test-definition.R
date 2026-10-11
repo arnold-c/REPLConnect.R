@@ -41,6 +41,45 @@ test_that("a function typed at the prompt has source but no file", {
   expect_false(file.exists(loc$file))
 })
 
+test_that("an S4 generic has one location per method", {
+  file <- tempfile(fileext = ".R")
+  on.exit(unlink(file))
+  writeLines(
+    c(
+      "setClass('RcCircle', representation(r = 'numeric'))",
+      "setClass('RcSquare', representation(s = 'numeric'))",
+      "setGeneric('rcArea', function(shape) standardGeneric('rcArea'))",
+      "setMethod('rcArea', 'RcCircle', function(shape) {",
+      "  pi * shape@r^2",
+      "})",
+      "setMethod('rcArea', 'RcSquare', function(shape) shape@s^2)"
+    ),
+    file
+  )
+  on.exit(
+    {
+      methods::removeGeneric("rcArea", where = globalenv())
+      methods::removeClass("RcCircle", where = globalenv())
+      methods::removeClass("RcSquare", where = globalenv())
+    },
+    add = TRUE
+  )
+  source(file, local = globalenv(), keep.source = TRUE)
+  reply <- definition_reply("rcArea", globalenv())
+  expect_true(reply$ok)
+  locs <- reply$result$locations
+  expect_length(locs, 2L)
+  by_signature <- setNames(locs, vapply(locs, `[[`, "", "signature"))
+  circle <- by_signature[['rcArea(shape = "RcCircle")']]
+  expect_identical(circle$file, normalizePath(file))
+  expect_identical(circle$line, 4L)
+  expect_match(circle$source, "pi * shape@r^2", fixed = TRUE)
+  expect_identical(
+    by_signature[['rcArea(shape = "RcSquare")']]$line,
+    7L
+  )
+})
+
 test_that("a function without srcref returns deparsed source and no file", {
   env <- new.env()
   env$h <- eval(parse(text = "function(a) a", keep.source = FALSE))
