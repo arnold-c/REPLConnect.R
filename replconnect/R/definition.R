@@ -112,6 +112,43 @@ s4_methods <- function(generic, name) {
 }
 
 #
+# S3
+#
+
+is_s3_generic <- function(f) {
+  !is.primitive(f) && isTRUE(unname(utils::isS3stdGeneric(f)))
+}
+
+# Methods of S3 generic `generic` (named `key`) that have srcref, i.e. user
+# code rather than the many package methods, labelled `print.foo(x, ...)`.
+# The generic itself comes first when it has srcref too.
+s3_methods <- function(generic, key, env) {
+  found <- suppressWarnings(utils::methods(key))
+  info <- attr(found, "info")
+  classes <- substring(
+    rownames(info)[info$generic == key],
+    nchar(key) + 2L
+  )
+  fns <- lapply(classes, function(class) {
+    utils::getS3method(key, class, optional = TRUE, envir = env)
+  })
+  names(fns) <- paste0(key, ".", classes)
+  fns <- Filter(function(f) is.function(f) && has_srcref(f), fns)
+  if (length(fns) == 0L) {
+    return(list())
+  }
+  if (has_srcref(generic)) {
+    fns <- c(stats::setNames(list(generic), key), fns)
+  }
+  names(fns) <- vapply(
+    names(fns),
+    function(name) definition_signature(fns[[name]], name),
+    ""
+  )
+  fns
+}
+
+#
 # R6
 #
 
@@ -231,11 +268,17 @@ r6_locations <- function(x, label) {
 # Request
 #
 
-# Every location of function `f`: one per method for generics with methods.
-function_locations <- function(f, name) {
-  methods <- if (is_s4_generic(f)) {
-    tryCatch(s4_methods(f, name), error = function(e) list())
-  }
+# Every location of function `f`, labelled `name` and bound to `key` in
+# `env`: one per method for generics with methods.
+function_locations <- function(f, name, key, env) {
+  methods <- tryCatch(
+    if (is_s4_generic(f)) {
+      s4_methods(f, name)
+    } else if (is_s3_generic(f)) {
+      s3_methods(f, key, env)
+    },
+    error = function(e) list()
+  )
   if (length(methods) > 0L) {
     return(ordered_locations(methods))
   }
@@ -255,7 +298,8 @@ definition <- function(path, env) {
     rpc_stop(INVALID_PARAMS, paste0("Not a function: ", path[[length(path)]]))
   }
   name <- definition_name(path, env)
-  list(locations = I(function_locations(f, name)))
+  key <- path[[length(path)]]
+  list(locations = I(function_locations(f, name, key, env)))
 }
 
 handle_definition <- function(params, connection) {

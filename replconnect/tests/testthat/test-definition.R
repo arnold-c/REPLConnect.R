@@ -162,6 +162,50 @@ test_that("an R6 instance lists its, private and super methods", {
   expect_false("amy$clone(deep)" %in% signatures)
 })
 
+test_that("an S3 generic lists the generic and its methods with srcref", {
+  file <- tempfile(fileext = ".R")
+  on.exit(unlink(file))
+  writeLines(
+    c(
+      "rcDescribe <- function(x, ...) UseMethod('rcDescribe')",
+      "rcDescribe.default <- function(x, ...) 'thing'",
+      "rcDescribe.rcDog <- function(x, ...) {",
+      "  'dog'",
+      "}"
+    ),
+    file
+  )
+  on.exit(
+    rm(
+      list = c("rcDescribe", "rcDescribe.default", "rcDescribe.rcDog"),
+      envir = globalenv()
+    ),
+    add = TRUE
+  )
+  source(file, local = globalenv(), keep.source = TRUE)
+  reply <- definition_reply("rcDescribe", globalenv())
+  expect_true(reply$ok)
+  signatures <- signatures_of(reply)
+  expect_identical(signatures[[1]], "rcDescribe(x, ...)")
+  expect_setequal(
+    signatures[-1],
+    c("rcDescribe.default(x, ...)", "rcDescribe.rcDog(x, ...)")
+  )
+  dog <- reply$result$locations[[
+    which(signatures == "rcDescribe.rcDog(x, ...)")
+  ]]
+  expect_identical(dog$line, 3L)
+  expect_identical(dog$file, normalizePath(file))
+})
+
+test_that("an S3 generic without user methods is a single location", {
+  env <- new.env()
+  env$p <- print
+  reply <- definition_reply("p", env)
+  expect_length(reply$result$locations, 1L)
+  expect_identical(reply$result$locations[[1]]$signature, "p(x, ...)")
+})
+
 test_that("a function without srcref returns deparsed source and no file", {
   env <- new.env()
   env$h <- eval(parse(text = "function(a) a", keep.source = FALSE))
