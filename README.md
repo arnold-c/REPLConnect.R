@@ -1,6 +1,6 @@
 # REPLConnect.R
 
-R support for [replconnect.nvim](https://github.com/) — connect Neovim to a
+R support for [REPLConnect.nvim](https://github.com/arnold-c/REPLConnect.nvim) — connect Neovim to a
 running R session (designed for the [arf](https://github.com/eitsupi/arf)
 console).
 
