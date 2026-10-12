@@ -180,9 +180,10 @@ definition_name <- function(path, env) {
   name
 }
 
-# `fns` (named functions) labelled as `owner$name(args)`.
+# `fns` (named functions) labelled as `owner$name(args)`, without the `clone`
+# method R6 adds to every class.
 labelled_methods <- function(fns, owner) {
-  fns <- Filter(is.function, fns)
+  fns <- Filter(is.function, fns[setdiff(names(fns), "clone")])
   if (length(fns) == 0L) {
     return(list())
   }
@@ -194,11 +195,12 @@ labelled_methods <- function(fns, owner) {
   fns
 }
 
-# The functions bound in an R6 object's environment (no active bindings and
-# no R6-provided `clone`).
+# The functions bound in an R6 object's environment (no active bindings).
 env_methods <- function(env) {
-  names <- setdiff(ls(env, all.names = FALSE), "clone")
-  names <- Filter(function(name) !bindingIsActive(name, env), names)
+  names <- Filter(
+    function(name) !bindingIsActive(name, env),
+    ls(env, all.names = FALSE)
+  )
   fns <- lapply(names, function(name) get(name, envir = env, inherits = FALSE))
   names(fns) <- names
   fns
