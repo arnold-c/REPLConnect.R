@@ -30,8 +30,14 @@ install.packages(
   "replconnect",
   repos = c("https://arnold-c.r-universe.dev", "https://cloud.r-project.org")
 )
-# or with pak:
-# pak::pak("replconnect", repos = "https://arnold-c.r-universe.dev")
+```
+
+Or with [pak](https://pak.r-lib.org):
+
+```r
+# install.packages("pak")
+pak::repo_add(arnold = "https://arnold-c.r-universe.dev")
+pak::pkg_install("replconnect")
 ```
 
 To build from source instead (requires Cargo and rustc):
