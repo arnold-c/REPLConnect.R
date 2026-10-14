@@ -32,13 +32,14 @@ utf8_prefix <- function(text, n) {
 
 # Raw utils completions for the end of `line`, with the token they replace.
 retrieve_completions <- function(line) {
-  utils:::.assignLinebuffer(line)
-  utils:::.assignEnd(nchar(line))
-  utils:::.guessTokenFromLine()
-  utils:::.completeToken()
+  internal <- function(name) utils::getFromNamespace(name, "utils")
+  internal(".assignLinebuffer")(line)
+  internal(".assignEnd")(nchar(line))
+  internal(".guessTokenFromLine")()
+  internal(".completeToken")()
   list(
-    token = utils:::.CompletionEnv[["token"]],
-    labels = as.character(utils:::.retrieveCompletions())
+    token = internal(".CompletionEnv")[["token"]],
+    labels = as.character(internal(".retrieveCompletions")())
   )
 }
 

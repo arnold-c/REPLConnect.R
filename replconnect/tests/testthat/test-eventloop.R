@@ -33,14 +33,11 @@ test_that("a real socket request during Sys.sleep wakes R and reports busy", {
     "examples",
     "status_probe"
   )
-  # This is required, not skipped: just r_tests builds it first.
-  expect_true(
+  # just r_tests builds the probe first; R CMD check has no source tree.
+  testthat::skip_if_not(
     file.exists(binary),
-    info = "build the probe first with just rust_probe"
+    "status_probe not built (run just rust_probe)"
   )
-  if (!file.exists(binary)) {
-    return(invisible(NULL))
-  }
   binary <- normalizePath(binary)
   with_probe_server(function(info) {
     report <- tempfile("ri-status-")

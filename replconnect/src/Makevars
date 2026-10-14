@@ -16,6 +16,7 @@ FORCE:
 
 $(STATLIB): FORCE
 	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
+	  rustc --version && \
 	  cargo build --lib --release -p replconnect \
 	    --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR)
 
