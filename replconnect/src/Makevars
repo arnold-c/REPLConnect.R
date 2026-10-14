@@ -14,9 +14,11 @@ $(SHLIB): $(STATLIB)
 .PHONY: FORCE
 FORCE:
 
+# R CMD check wants a rustc version line before the first `cargo build`
+# line in the install log, so report it in its own recipe line.
 $(STATLIB): FORCE
+	@export PATH="$(PATH):$(HOME)/.cargo/bin" && rustc --version
 	export PATH="$(PATH):$(HOME)/.cargo/bin" && \
-	  rustc --version && \
 	  cargo build --lib --release -p replconnect \
 	    --manifest-path=./rust/Cargo.toml --target-dir $(TARGET_DIR)
 

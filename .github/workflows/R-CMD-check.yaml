@@ -35,6 +35,9 @@ jobs:
       - uses: r-lib/actions/check-r-package@v2
         with:
           working-directory: replconnect
+          # Rust std's panic runtime always links `abort`, which R CMD
+          # check reports as a WARNING; it cannot be removed from the code.
+          error-on: '"error"'
 
   rust-core:
     runs-on: ubuntu-latest
