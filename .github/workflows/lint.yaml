@@ -1,0 +1,27 @@
+name: Lint and format
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  r:
+    name: R (Air format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: posit-dev/setup-air@v1
+      - run: air format --check replconnect/R replconnect/tests
+
+  rust:
+    name: Rust (rustfmt + clippy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --manifest-path replconnect/src/rust/Cargo.toml --all --check
+      - run: >-
+          cargo clippy --manifest-path replconnect/src/rust/Cargo.toml
+          -p replconnect-core --all-targets -- -D warnings

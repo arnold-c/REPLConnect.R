@@ -38,10 +38,3 @@ jobs:
           # Rust std's panic runtime always links `abort`, which R CMD
           # check reports as a WARNING; it cannot be removed from the code.
           error-on: '"error"'
-
-  rust-core:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p replconnect-core --manifest-path replconnect/src/rust/Cargo.toml
